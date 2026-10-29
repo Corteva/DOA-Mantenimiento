@@ -3315,28 +3315,44 @@ async function saveProfile(id){
       return;
     }
 
-    // Reutiliza las filas existentes que coincidan y solo crea las que falten.
-    // Las filas sobrantes se eliminan al final, no antes de guardar.
+    // Planifica la actualización reutilizando primero coincidencias exactas.
+    // Esto evita convertir una variante de texto en un duplicado antes de limpiar
+    // filas antiguas que representan el mismo DOA con espacios/tildes/mayúsculas.
     const retainedIds=new Set();
     if(current && normalizeDuplicateText(current.cargo)===cargoKey){
       const remaining=[...oldRows];
+      const plan=[];
       for(const d of selectedDoa){
-        const matchIndex=remaining.findIndex(r=>doaKey(r.doa)===doaKey(d));
+        // Prioriza coincidencia literal; después, coincidencia normalizada.
+        let matchIndex=remaining.findIndex(r=>String(r.doa||'').trim()===d);
+        if(matchIndex<0)matchIndex=remaining.findIndex(r=>doaKey(r.doa)===doaKey(d));
         if(matchIndex>=0){
           const row=remaining.splice(matchIndex,1)[0];
-          await put('perfiles',{id:row.id,cargo,doa:d});
+          plan.push({row,doa:d});
           retainedIds.add(String(row.id));
         }else{
-          const created={id:uid(),cargo,doa:d};
-          await put('perfiles',created);
-          if(created.id!==undefined)retainedIds.add(String(created.id));
+          plan.push({row:null,doa:d});
         }
       }
+
+      // Limpia primero las filas que no se conservarán. Así una fila antigua
+      // con el mismo DOA normalizado no bloquea el PATCH por la restricción única.
       for(const r of oldRows){
         if(!retainedIds.has(String(r.id)))await del('perfiles',r.id);
       }
+
+      // Actualiza las filas elegidas y crea únicamente las que falten.
+      for(const item of plan){
+        if(item.row){
+          await put('perfiles',{id:item.row.id,cargo,doa:item.doa});
+        }else{
+          const created={id:uid(),cargo,doa:item.doa};
+          await put('perfiles',created);
+        }
+      }
     }else{
-      // Si el Cargo cambió, primero guarda el nuevo perfil y después elimina el anterior.
+      // Si el Cargo cambia, primero se valida que no exista la combinación
+      // Cargo + DOA en otro perfil; luego se crea el nuevo conjunto y se retira el anterior.
       for(const d of selectedDoa){
         await put('perfiles',{id:uid(),cargo,doa:d});
       }
