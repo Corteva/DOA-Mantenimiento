@@ -1926,11 +1926,14 @@ async function renderDashboard(filter=dashboardFilter){
    const relevant=x.details.filter(d=>
      (dashboardFilter==='soon'&&d.status==='PRÓXIMO A VENCER')||
      (dashboardFilter==='expired'&&d.status==='VENCIDO'));
-   const alerts=relevant.length?`<div class="dash-course-alerts"><b>${dashboardFilter==='soon'?'Cursos próximos a vencer':'Cursos vencidos'}:</b> ${relevant.map(d=>`${esc(d.curso||d.doa||d.estandar||'Curso sin nombre')}${d.fechaFin?' ('+esc(d.fechaFin)+')':''}`).join(' · ')}</div>`:'';
+   const alerts=relevant.length?`<div class="dash-course-alerts"><b>${dashboardFilter==='soon'?'Cursos próximos a vencer':'Cursos vencidos'}:</b><div class="dash-alert-list">${relevant.map(d=>`<div class="dash-alert-item"><span class="dash-alert-doa">${esc(d.doa||'DOA sin nombre')}</span><span class="dash-alert-course">${esc(d.curso||d.estandar||'Curso sin nombre')}${d.fechaFin?' · Fecha fin: '+esc(d.fechaFin):''}</span></div>`).join('')}</div></div>`:'';
    const doaMarkup=doaGroups.length?doaGroups.map(g=>{
      const isGood=g.ok;
      const doneCount=Number(g.done||0),requiredCount=Number(g.required||0);
-     return `<div class="dash-doa-item"><div class="dash-doa-name">${esc(g.doa||'DOA sin nombre')}</div><div class="dash-doa-state ${isGood?'good':'bad'}">${isGood?'✓ Autorizado para este DOA':`En proceso · ${doneCount} de ${requiredCount} cursos vigentes`}</div></div>`;
+     const expiredCourses=x.details.filter(d=>normalizeRel(d.doa||'')===normalizeRel(g.doa||'')&&d.status==='VENCIDO');
+     const expiredText=expiredCourses.length?`<div class="dash-doa-expired"><b>Curso vencido:</b> ${expiredCourses.map(d=>`${esc(d.curso||d.estandar||'Curso sin nombre')}${d.fechaFin?' ('+esc(d.fechaFin)+')':''}`).join(' · ')}</div>`:'';
+     const stateText=isGood?'✓ Autorizado para este DOA':expiredCourses.length?`⚠ Vencido · ${expiredCourses.length} curso(s) vencido(s)`:`En proceso · ${doneCount} de ${requiredCount} cursos vigentes`;
+     return `<div class="dash-doa-item ${expiredCourses.length?'has-expired':''}"><div class="dash-doa-name">${esc(g.doa||'DOA sin nombre')}</div><div class="dash-doa-state ${isGood?'good':expiredCourses.length?'expired':'bad'}">${stateText}</div>${expiredText}</div>`;
    }).join(''):'<div class="dash-doa-item"><div class="dash-doa-name">Sin DOA aplicables identificados</div><div class="dash-doa-state">Verifique la asignación del cargo.</div></div>';
    rows+=`<article class="dash-person">
      <div>
@@ -4663,3 +4666,25 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;bac
 </style>
 
 </body></html>
+
+<style id="dashboard-doa-detail-fix">
+/* Ajuste acotado a Ver detalle de DOA en Dashboard */
+#dashboard .dash-details{margin-top:14px;border:1px solid #dbe5ee;border-radius:12px;background:#f8fbfe;overflow:hidden}
+#dashboard .dash-details>summary{padding:12px 14px;cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;background:linear-gradient(100deg,#edf5fb,#f9fcff);color:#0d568d;font-size:13px;font-weight:800}
+#dashboard .dash-details>summary::-webkit-details-marker{display:none}
+#dashboard .dash-details>summary:after{content:'+';font-size:18px;color:#0d5ea8;line-height:1}
+#dashboard .dash-details[open]>summary:after{content:'−'}
+#dashboard .dash-doa-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding:12px}
+#dashboard .dash-doa-item{padding:13px 14px;border:1px solid #dce6ef;border-radius:11px;background:#fff;box-shadow:0 2px 7px rgba(18,54,81,.035);min-width:0}
+#dashboard .dash-doa-item.has-expired{border-color:#e7b9bd;background:#fffafb}
+#dashboard .dash-doa-name{font-size:12px;line-height:1.45;color:#173f5e}
+#dashboard .dash-doa-state{font-size:11px;line-height:1.45;margin-top:7px;font-weight:650}
+#dashboard .dash-doa-state.expired{color:#9e2633}
+#dashboard .dash-doa-expired{margin-top:8px;padding:8px 9px;border-radius:8px;background:#fff0f1;color:#8e202b;font-size:11px;line-height:1.5;overflow-wrap:anywhere}
+#dashboard .dash-course-alerts{margin:10px 12px 12px;padding:12px 14px;border:1px solid #efc8cc;border-left:4px solid #a52b39;border-radius:10px;background:#fff7f7;color:#78202a}
+#dashboard .dash-alert-list{display:grid;gap:7px;margin-top:8px}
+#dashboard .dash-alert-item{display:grid;grid-template-columns:minmax(130px,.8fr) minmax(0,1.4fr);gap:10px;padding:8px 0;border-top:1px solid #f0dfe1;overflow-wrap:anywhere}
+#dashboard .dash-alert-doa{font-weight:800;color:#8f2430}
+#dashboard .dash-alert-course{color:#5d3d42}
+@media(max-width:640px){#dashboard .dash-doa-list{grid-template-columns:1fr}#dashboard .dash-alert-item{grid-template-columns:1fr;gap:3px}}
+</style>
