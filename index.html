@@ -2202,9 +2202,11 @@ async function viewUser(id){
         ${attach}
       </div>`;
     }).join('');
-    return `<div class="detail-group doa-detail-group" data-doa-index="${gi % 2}">
+    const doaAuthorized=g.cursos.length>0&&g.cursos.every(item=>item.status==='COMPLETO / VIGENTE');
+    return `<div class="detail-group doa-detail-group ${doaAuthorized?'doa-is-authorized':''}" data-doa-index="${gi % 2}">
       <div class="detail-group-head">
-        <div><h4>${esc(g.doa||'Sin DOA')}</h4><div class="detail-group-count">${g.cursos.length} ${g.cursos.length===1?'entrenamiento':'entrenamientos'}</div></div>
+        <div class="detail-doa-title-line"><h4>${esc(g.doa||'Sin DOA')}</h4>${doaAuthorized?'<span class="doa-authorized-label" title="Todos los cursos de este DOA están completos y vigentes">✓ AUTORIZADO</span>':''}</div>
+        <div class="detail-group-count">${g.cursos.length} ${g.cursos.length===1?'entrenamiento':'entrenamientos'}</div>
       </div>
       <div class="detail-courses">${courses}</div>
     </div>`;
@@ -2303,6 +2305,16 @@ function showUserDetailDoaCourses(groupIndex,button){
   document.querySelectorAll('.detail-doa-name-button').forEach(item=>{
     const active=item===button;
     item.classList.toggle('selected',active);
+    if(active){
+      item.style.setProperty('background','linear-gradient(105deg,#e7f3ff 0%,#d6eaff 100%)','important');
+      item.style.setProperty('border','1px solid #a8cfee','important');
+      item.style.setProperty('border-left','6px solid #6da9dc','important');
+      item.style.setProperty('color','#214e76','important');
+      item.style.setProperty('box-shadow','0 0 0 3px rgba(122,174,218,.22),0 5px 14px rgba(55,105,155,.12)','important');
+      item.style.setProperty('transform','translateX(2px)','important');
+    } else {
+      ['background','border','border-left','color','box-shadow','transform'].forEach(prop=>item.style.removeProperty(prop));
+    }
     const label=item.querySelector('.detail-doa-open');
     if(label)label.textContent=active?'● Cursos visibles':'Ver cursos ›';
     item.setAttribute('aria-pressed',active?'true':'false');
@@ -4747,6 +4759,133 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;bac
  #detailDoaNamesList .detail-doa-name-button.selected{transform:none!important}
 }
 </style>
+
+<style id="doa-authorized-label-style">
+#modal .doa-detail-group .detail-doa-title-line{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+#modal .doa-detail-group .doa-authorized-label{
+ display:inline-flex;align-items:center;gap:5px;padding:6px 11px;border-radius:999px;
+ background:#e2f5e8;border:1px solid #a9d9b8;color:#17683b;
+ font-size:11px;font-weight:900;letter-spacing:.35px;white-space:nowrap;
+ box-shadow:0 2px 5px rgba(28,112,61,.08)
+}
+#modal .doa-detail-group.doa-is-authorized .detail-group-head{
+ background:linear-gradient(100deg,#effaf2,#f9fdf9)!important;
+ border-bottom-color:#cce8d3!important;box-shadow:inset 4px 0 0 #38a169!important
+}
+#modal .doa-detail-group.doa-is-authorized .detail-group-head h4{color:#205b38!important}
+</style>
+
+<style id="user-detail-course-status-colors">
+/* Colores de estado de cursos dentro de Ver detalle: únicamente visual */
+.user-detail .detail-course[data-course-status="COMPLETO / VIGENTE"]{
+  background:linear-gradient(135deg,#f0fbf3 0%,#e3f6e8 100%)!important;
+  border:1px solid #b9dfc2!important;border-left:5px solid #35a45b!important;
+  border-radius:10px!important;margin:8px 0!important;
+}
+.user-detail .detail-course[data-course-status="COMPLETO / VIGENTE"] .badge{
+  background:#d5f0dc!important;color:#216638!important;border-color:#a9d8b6!important;
+}
+.user-detail .detail-course[data-course-status="EN PROCESO"],
+.user-detail .detail-course[data-course-status="PRÓXIMO A VENCER"]{
+  background:linear-gradient(135deg,#fff9e8 0%,#fff1c9 100%)!important;
+  border:1px solid #ead18a!important;border-left:5px solid #e2ad27!important;
+  border-radius:10px!important;margin:8px 0!important;
+}
+.user-detail .detail-course[data-course-status="EN PROCESO"] .badge,
+.user-detail .detail-course[data-course-status="PRÓXIMO A VENCER"] .badge{
+  background:#ffedb5!important;color:#805b08!important;border-color:#e7cc78!important;
+}
+.user-detail .detail-course[data-course-status="PENDIENTE"],
+.user-detail .detail-course[data-course-status="VENCIDO"]{
+  background:linear-gradient(135deg,#fff1f2 0%,#ffe3e6 100%)!important;
+  border:1px solid #e8b4bb!important;border-left:5px solid #c83b4b!important;
+  border-radius:10px!important;margin:8px 0!important;
+}
+.user-detail .detail-course[data-course-status="PENDIENTE"] .badge,
+.user-detail .detail-course[data-course-status="VENCIDO"] .badge{
+  background:#fbd9de!important;color:#922536!important;border-color:#e8aab4!important;
+}
+</style>
+
+<style id="doa-category-status-colors">
+/* Colores de las pestañas/listas de DOA según su categoría */
+#detailDoaNamesList .detail-doa-name-button:has(.detail-doa-name-dot.good){
+  background:#e2f6e8!important;border:1px solid #a9d9b7!important;
+  border-left:6px solid #269653!important;color:#205d36!important;
+}
+#detailDoaNamesList .detail-doa-name-button:has(.detail-doa-name-dot.good) .detail-doa-name-text b{color:#205d36!important}
+#detailDoaNamesList .detail-doa-name-button:has(.detail-doa-name-dot.good) .detail-doa-name-text small{color:#39764c!important}
+#detailDoaNamesList .detail-doa-name-button:has(.detail-doa-name-dot.good) .detail-doa-open{color:#1e713c!important;background:#c9ebd3!important}
+
+#detailDoaNamesList .detail-doa-name-button:has(.detail-doa-name-dot.progress){
+  background:#fff4ce!important;border:1px solid #e8d18a!important;
+  border-left:6px solid #d6a21b!important;color:#775809!important;
+}
+#detailDoaNamesList .detail-doa-name-button:has(.detail-doa-name-dot.progress) .detail-doa-name-text b{color:#775809!important}
+#detailDoaNamesList .detail-doa-name-button:has(.detail-doa-name-dot.progress) .detail-doa-name-text small{color:#8b6d1d!important}
+#detailDoaNamesList .detail-doa-name-button:has(.detail-doa-name-dot.progress) .detail-doa-open{color:#805e0a!important;background:#f8e6a7!important}
+
+#detailDoaNamesList .detail-doa-name-button:has(.detail-doa-name-dot.issue){
+  background:#ffe5e7!important;border:1px solid #e8b4bb!important;
+  border-left:6px solid #c33b4b!important;color:#8c2634!important;
+}
+#detailDoaNamesList .detail-doa-name-button:has(.detail-doa-name-dot.issue) .detail-doa-name-text b{color:#8c2634!important}
+#detailDoaNamesList .detail-doa-name-button:has(.detail-doa-name-dot.issue) .detail-doa-name-text small{color:#a13b48!important}
+#detailDoaNamesList .detail-doa-name-button:has(.detail-doa-name-dot.issue) .detail-doa-open{color:#972b3a!important;background:#f8cbd0!important}
+
+/* Si un DOA está abierto, conserva su categoría cromática y añade contorno */
+#detailDoaNamesList .detail-doa-name-button.selected{
+  box-shadow:0 0 0 3px rgba(105,145,180,.22),0 5px 14px rgba(30,60,90,.12)!important;
+  transform:translateX(2px)!important;
+}
+</style>
+
+
+<style id="doa-open-soft-blue">
+/* DOA cuyo grupo de cursos está abierto: azul suave, sin perder el estado de categoría */
+#detailDoaNamesList .detail-doa-name-button.selected{
+  background:linear-gradient(105deg,#e7f3ff 0%,#d6eaff 100%)!important;
+  border:1px solid #a8cfee!important;
+  border-left:6px solid #6da9dc!important;
+  color:#214e76!important;
+  box-shadow:0 0 0 3px rgba(122,174,218,.18),0 5px 14px rgba(55,105,155,.10)!important;
+  transform:translateX(2px)!important;
+}
+#detailDoaNamesList .detail-doa-name-button.selected .detail-doa-name-text b{
+  color:#214e76!important;font-weight:900!important;
+}
+#detailDoaNamesList .detail-doa-name-button.selected .detail-doa-name-text small{
+  color:#52799d!important;
+}
+#detailDoaNamesList .detail-doa-name-button.selected .detail-doa-open{
+  color:#214e76!important;background:rgba(255,255,255,.72)!important;
+}
+</style>
+
+
+<style id="doa-active-blue-hardfix">
+#detailDoaNamesList .detail-doa-name-button.selected .detail-doa-name-text b{color:#214e76!important}
+#detailDoaNamesList .detail-doa-name-button.selected .detail-doa-name-text small{color:#52799d!important}
+#detailDoaNamesList .detail-doa-name-button.selected .detail-doa-open{color:#214e76!important;background:#fff!important;border-radius:7px;padding:5px 8px}
+</style>
+
+<style id="doa-authorized-label-right">
+/* Mantener AUTORIZADO a la derecha del nombre del DOA, en la misma línea */
+#modal .doa-detail-group .detail-doa-title-line{
+ display:flex!important;align-items:center!important;flex-wrap:nowrap!important;gap:10px!important;width:100%!important;
+}
+#modal .doa-detail-group .detail-doa-title-line h4{
+ flex:1 1 auto!important;min-width:0!important;margin:0!important;
+}
+#modal .doa-detail-group .doa-authorized-label{
+ margin-left:auto!important;flex:0 0 auto!important;white-space:nowrap!important;
+}
+@media(max-width:480px){
+ #modal .doa-detail-group .detail-doa-title-line{gap:6px!important}
+ #modal .doa-detail-group .doa-authorized-label{padding:4px 7px!important;font-size:10px!important}
+}
+</style>
+
 </body></html>
 
 <style id="dashboard-doa-detail-fix">
