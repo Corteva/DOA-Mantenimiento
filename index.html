@@ -2287,9 +2287,28 @@ function toggleUserDetailDoas(kind,button){
     const done=courses.filter(c=>c.status==='COMPLETO / VIGENTE').length;
     const hasIssues=courses.some(c=>c.status==='PENDIENTE'||c.status==='VENCIDO');
     const state=kind==='authorized'?'Autorizado':(hasIssues?'Requiere cursos pendientes o revisión de vencimientos':`En proceso · ${done} de ${courses.length} entrenamientos vigentes`);
-    return `<div class="detail-doa-name-item"><span class="detail-doa-name-dot ${kind==='authorized'?'good':kind==='issues'?'issue':'progress'}"></span><span class="detail-doa-name-text"><b>${esc(g.doa||'Sin DOA')}</b><small>${esc(state)}</small></span></div>`;
+    const groupIndex=groups.indexOf(g);
+    return `<button type="button" class="detail-doa-name-item detail-doa-name-button" onclick="showUserDetailDoaCourses(${groupIndex},this)" aria-label="Ver cursos del DOA ${esc(g.doa||'Sin DOA')}"><span class="detail-doa-name-dot ${kind==='authorized'?'good':kind==='issues'?'issue':'progress'}"></span><span class="detail-doa-name-text"><b>${esc(g.doa||'Sin DOA')}</b><small>${esc(state)}</small></span><span class="detail-doa-open">Ver cursos ›</span></button>`;
   }).join(''):'<div class="detail-doa-name-empty">No hay DOA en esta categoría.</div>';
   panel.hidden=false;
+}
+function showUserDetailDoaCourses(groupIndex,button){
+  const training=document.getElementById('detailTrainingContent');
+  const panel=document.getElementById('detailDoaNamesPanel');
+  if(!training)return;
+  training.hidden=false;
+  training.querySelectorAll('.doa-detail-group').forEach((group,index)=>{
+    group.hidden=index!==Number(groupIndex);
+  });
+  document.querySelectorAll('.detail-doa-name-button').forEach(item=>{
+    const active=item===button;
+    item.classList.toggle('selected',active);
+    const label=item.querySelector('.detail-doa-open');
+    if(label)label.textContent=active?'● Cursos visibles':'Ver cursos ›';
+    item.setAttribute('aria-pressed',active?'true':'false');
+  });
+  const target=training.querySelector('.doa-detail-group:not([hidden])');
+  if(target)target.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 async function populateReqCargos(){
   const profiles=await all('perfiles');
@@ -4681,6 +4700,53 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;bac
 @media(max-width:700px){.view{padding:10px!important;border-radius:14px}.view>.page-title{padding:16px;margin-bottom:14px!important}.view>.panel,.view .panel{border-radius:14px!important}}
 </style>
 
+<style id="users-detail-doa-click-only">
+/* Botones de DOA: estado activo con prioridad sobre estilos generales */
+#detailDoaNamesList .detail-doa-name-button{
+  width:100%!important; display:flex!important; align-items:center!important;
+  gap:10px!important; font:inherit!important; text-align:left!important;
+  cursor:pointer!important; color:#17324b!important;
+  border:1px solid #dce7ef!important; border-left:5px solid #8aa9c3!important;
+  background:#fff!important; border-radius:12px!important;
+  transition:background .18s,border-color .18s,box-shadow .18s,transform .18s!important;
+}
+#detailDoaNamesList .detail-doa-name-button:hover{
+  background:#edf6fc!important; border-color:#78afd5!important;
+  box-shadow:0 4px 12px rgba(13,94,168,.12)!important;
+}
+#detailDoaNamesList .detail-doa-name-button.selected,
+#detailDoaNamesList .detail-doa-name-button[aria-pressed="true"]{
+  background:linear-gradient(105deg,#dceeff 0%,#c8e2fb 100%)!important;
+  color:#174a76!important; border:2px solid #8dbce5!important;
+  border-left:8px solid #ffd34e!important;
+  box-shadow:0 0 0 3px rgba(255,211,78,.22),0 6px 16px rgba(57,115,166,.16)!important;
+  padding-left:12px!important; transform:translateX(3px)!important;
+  position:relative!important;
+}
+#detailDoaNamesList .detail-doa-name-button.selected .detail-doa-name-text b,
+#detailDoaNamesList .detail-doa-name-button[aria-pressed="true"] .detail-doa-name-text b{
+  color:#174a76!important;font-weight:900!important;
+}
+#detailDoaNamesList .detail-doa-name-button.selected .detail-doa-name-text small,
+#detailDoaNamesList .detail-doa-name-button[aria-pressed="true"] .detail-doa-name-text small{
+  color:#426b8d!important;
+}
+#detailDoaNamesList .detail-doa-name-button.selected .detail-doa-open,
+#detailDoaNamesList .detail-doa-name-button[aria-pressed="true"] .detail-doa-open{
+  color:#174a76!important;background:rgba(255,255,255,.72)!important;
+  padding:6px 9px!important;border-radius:8px!important;font-size:11px!important;font-weight:900!important;
+}
+#detailDoaNamesList .detail-doa-name-button .detail-doa-open{
+  margin-left:auto!important;white-space:nowrap!important;color:#0d5ea8!important;font-size:11px!important;font-weight:800!important;
+}
+#detailDoaNamesList .detail-doa-name-button.selected .detail-doa-open,
+#detailDoaNamesList .detail-doa-name-button[aria-pressed="true"] .detail-doa-open{color:#174a76!important}
+#detailTrainingContent .doa-detail-group[hidden]{display:none!important}
+@media(max-width:600px){
+ #detailDoaNamesList .detail-doa-name-button .detail-doa-open{font-size:10px!important}
+ #detailDoaNamesList .detail-doa-name-button.selected{transform:none!important}
+}
+</style>
 </body></html>
 
 <style id="dashboard-doa-detail-fix">
