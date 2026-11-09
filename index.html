@@ -4886,6 +4886,42 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;bac
 }
 </style>
 
+
+<!-- Registro automático de apertura en la tabla existente actividad_plataforma.
+     No interviene en las consultas ni en el guardado de datos funcionales. -->
+<script id="registro-apertura-plataforma">
+(function registrarAperturaDOA(){
+  try {
+    const url = 'https://xpcwcqhfuepnykhukjrc.supabase.co';
+    const key = 'sb_publishable_v6jXdDSkzB_jd7K10Oo0Kg_KSATAgqA';
+    const fechaLocal = new Date();
+    const fecha = [
+      fechaLocal.getFullYear(),
+      String(fechaLocal.getMonth()+1).padStart(2,'0'),
+      String(fechaLocal.getDate()).padStart(2,'0')
+    ].join('-');
+    fetch(url + '/rest/v1/actividad_plataforma?on_conflict=fecha', {
+      method: 'POST',
+      headers: {
+        'apikey': key,
+        'Authorization': 'Bearer ' + key,
+        'Content-Type': 'application/json',
+        'Prefer': 'resolution=merge-duplicates,return=minimal'
+      },
+      body: JSON.stringify({
+        fecha: fecha,
+        tipo_actividad: 'Apertura plataforma',
+        nuevos_cumplimientos: 0
+      }),
+      keepalive: true
+    }).catch(function(error){
+      console.warn('No se pudo registrar la apertura en actividad_plataforma:', error);
+    });
+  } catch(error) {
+    console.warn('No se pudo iniciar el registro de apertura:', error);
+  }
+})();
+</script>
 </body></html>
 
 <style id="dashboard-doa-detail-fix">
