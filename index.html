@@ -4892,33 +4892,28 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;bac
 <script id="registro-apertura-plataforma">
 (function registrarAperturaDOA(){
   try {
-    const url = 'https://xpcwcqhfuepnykhukjrc.supabase.co';
-    const key = 'sb_publishable_v6jXdDSkzB_jd7K10Oo0Kg_KSATAgqA';
-    const fechaLocal = new Date();
-    const fecha = [
-      fechaLocal.getFullYear(),
-      String(fechaLocal.getMonth()+1).padStart(2,'0'),
-      String(fechaLocal.getDate()).padStart(2,'0')
-    ].join('-');
-    fetch(url + '/rest/v1/actividad_plataforma?on_conflict=fecha', {
+    fetch('https://xpcwcqhfuepnykhukjrc.supabase.co/rest/v1/rpc/registrar_apertura_plataforma', {
       method: 'POST',
       headers: {
-        'apikey': key,
-        'Authorization': 'Bearer ' + key,
-        'Content-Type': 'application/json',
-        'Prefer': 'resolution=merge-duplicates,return=minimal'
+        'apikey': 'sb_publishable_v6jXdDSkzB_jd7K10Oo0Kg_KSATAgqA',
+        'Authorization': 'Bearer sb_publishable_v6jXdDSkzB_jd7K10Oo0Kg_KSATAgqA',
+        'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        fecha: fecha,
-        tipo_actividad: 'Apertura plataforma',
-        nuevos_cumplimientos: 0
-      }),
+      body: '{}',
       keepalive: true
+    }).then(function(response){
+      if (!response.ok) {
+        response.text().then(function(detail){
+          console.error('Error registrando apertura en Supabase:', response.status, detail);
+        });
+      } else {
+        console.info('Apertura de plataforma registrada en Supabase.');
+      }
     }).catch(function(error){
-      console.warn('No se pudo registrar la apertura en actividad_plataforma:', error);
+      console.error('No se pudo registrar la apertura en Supabase:', error);
     });
   } catch(error) {
-    console.warn('No se pudo iniciar el registro de apertura:', error);
+    console.error('No se pudo iniciar el registro de apertura:', error);
   }
 })();
 </script>
