@@ -1548,6 +1548,11 @@ input:focus,select:focus,textarea:focus{outline:none!important;border-color:#078
   background: linear-gradient(110deg, #1a9858 0%, #08aaa4 48%, #118cf0 100%) !important;
 }
 </style>
+<style id="dashboard-user-detail-link">
+#dashboard .dash-user-detail-action{display:flex;justify-content:flex-end;margin-top:10px;padding-top:9px;border-top:1px solid #eaf0f6}
+#dashboard .dash-go-user-detail{font-size:11px!important;padding:6px 11px!important;border-radius:8px!important;font-weight:700!important;color:#155b91!important;background:#edf6ff!important;border:1px solid #c9e2f7!important}
+#dashboard .dash-go-user-detail:hover{background:#dceeff!important;border-color:#9bc9eb!important}
+</style>
 </head>
 <body>
 <div id="authScreen"><div class="auth-box"><div class="auth-brand">
@@ -1743,7 +1748,7 @@ function dbPayload(s,o){if(s==='usuarios')return {nombre_completo:o.nombre||'',e
 async function put(s,o){const table=s==='estandares'?'estandares_doa':(s==='cumplimientos'?'cumplimiento':(s==='clasificaciones'?'clasificacion_estandares':s)),payload=dbPayload(s,o),isUpdate=!!(o.id&&/^\d+$/.test(String(o.id)));if(s==='cumplimientos'&&!isUpdate)payload.created_at=new Date().toISOString();let data;if(isUpdate)data=await api(table+'?id=eq.'+Number(o.id),{method:'PATCH',body:JSON.stringify(payload)});else data=await api(table,{method:'POST',body:JSON.stringify(payload)});const row=Array.isArray(data)?data[0]:data;if(row?.id!==undefined)o.id=String(row.id);invalidateDataCache(s,...(s==='usuarios'?['cumplimientos']:s==='estandares'?['cumplimientos']:s==='perfiles'?['excepciones_doa']:[]));return o}
 async function del(s,id){const table=s==='estandares'?'estandares_doa':(s==='cumplimientos'?'cumplimiento':(s==='clasificaciones'?'clasificacion_estandares':s));await api(table+'?id=eq.'+Number(id),{method:'DELETE',headers:authHeaders({'Prefer':'return=minimal'})});invalidateDataCache(s,'cumplimientos',...(s==='usuarios'?['usuarios']:[]),...(s==='estandares'?['estandares']:[]))}
 function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
-function statusFor(c){if(!c.fechaRealizacion)return 'PENDIENTE';/* Frecuencia de 0 años significa entrenamiento inicial sin recurrencia: permanece vigente tras su realización. */if(c.frecuenciaAnios!==undefined&&c.frecuenciaAnios!==null&&Number(c.frecuenciaAnios)===0)return 'COMPLETO / VIGENTE';if(!c.fechaFin)return 'PENDIENTE';let end=new Date(c.fechaFin+'T23:59:59');if(isNaN(end))return 'PENDIENTE';let now=new Date(), soon=new Date();soon.setDate(soon.getDate()+60);if(end<now)return 'VENCIDO';if(end<=soon)return 'PRÓXIMO A VENCER';return 'COMPLETO / VIGENTE'}
+function statusFor(c){if(!c.fechaRealizacion)return 'PENDIENTE';/* Frecuencia de 0 años significa entrenamiento inicial sin recurrencia: permanece vigente tras su realización. */if(c.frecuenciaAnios!==undefined&&c.frecuenciaAnios!==null&&Number(c.frecuenciaAnios)===0)return 'COMPLETO / VIGENTE';if(!c.fechaFin)return 'PENDIENTE';let end=new Date(c.fechaFin+'T23:59:59');if(isNaN(end))return 'PENDIENTE';let now=new Date();now.setHours(0,0,0,0);let soon=new Date();soon.setMonth(soon.getMonth()+3);soon.setHours(23,59,59,999);if(end<now)return 'VENCIDO';if(end<=soon)return 'PRÓXIMO A VENCER';return 'COMPLETO / VIGENTE'}
 function badge(s){let cl=s==='COMPLETO / VIGENTE'?'b-green':s==='VENCIDO'||s==='NO AUTORIZADO'?'b-red':s==='PRÓXIMO A VENCER'?'b-amber':'b-gray';return `<span class="badge ${cl}">${esc(s)}</span>`}
 function calcEnd(date,years,days){if(!date)return '';/* 0 años = sin vencimiento; no generar una Fecha FIN para un entrenamiento sin recurrencia. */if(Number(years||0)===0)return '';let d=new Date(date+'T00:00:00');d.setFullYear(d.getFullYear()+Number(years||0));d.setDate(d.getDate()+Number(days||0));return d.toISOString().slice(0,10)}
 function doaList(value){return String(value||'').split(/[,;\n]+/).map(x=>x.trim().toLowerCase()).filter(Boolean)}
@@ -1947,9 +1952,10 @@ async function renderDashboard(filter=dashboardFilter){
          ${x.dashExpired?`<span class="dash-chip bad">${x.dashExpired} vencidos</span>`:''}
        </div>
        <details class="dash-details">
-         <summary>Ver detalle de DOA (${doaGroups.length})</summary>
+         <summary>Ver todo</summary>
          <div class="dash-doa-list">${doaMarkup}</div>
          ${alerts}
+         <div class="dash-user-detail-action"><button type="button" class="btn btn-light dash-go-user-detail" onclick="viewUser('${u.id}')">Ir a Ver detalles</button></div>
        </details>
      </div>
      <div class="dash-person-status">
